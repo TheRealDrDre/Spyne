@@ -1,0 +1,22 @@
+## ---------------------------------------------------------------- ##
+## HISTORY.txt
+## ---------------------------------------------------------------- ##
+## A log history of the development of the SPyNE package.
+## ---------------------------------------------------------------- ##
+
+2012-01-21 : * Move to wx.glcanvas to better integrate OpenGL within 
+	   :   an application.
+
+2012-01-18 : * Upgraded NumPy and OpenGL to 64 bits.  Needs to 
+	   :   adjust some code
+
+2012-03-26 : * New version of GUI works consistently.
+           : * Moved all the fundamental objects into the 'basic' 
+           :   module.
+
+2012-03-24 : * Decided on he final name of the package as SPyNE (for
+	   :   Simple Python Neural Environment).
+	   : * Began working on a new and improve GUI.
+
+2012-03-13 : * Began working on a 'packaged' version of the original
+	   :   VDM code (the code used for the model in Stocco, 2012).
