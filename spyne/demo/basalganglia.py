@@ -1,6 +1,11 @@
-# Basal ganglia circuit mockup
+# ================================================================== #
+# BASALGANGLIA
+# ================================================================== #
+# A mockup version of the basal ganglia circuit for demo purposes
+# ================================================================== #
+
 import numpy as np
-from neural import *
+from ..neural import *
 
 def CreateBasalGanglia(regions=5, n_cortex=100, n_tans=10, n_str=20,
                        n_gpe=20, n_snrgpi=10, n_thal=10):
