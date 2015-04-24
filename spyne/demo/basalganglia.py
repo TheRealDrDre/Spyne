@@ -9,13 +9,17 @@ from ..neural import *
 
 def CreateBasalGanglia(regions=5, n_cortex=100, n_tans=10, n_str=20,
                        n_gpe=20, n_snrgpi=10, n_thal=10):
+    """
+Creates a mockup basal ganglia circuit, using the structure proposed in
+Stocco, Lebiere, & Anderson (2010) as a template.
+    """
     bg       = Circuit()
-    tans     = Group(n_tans*regions**2,   name=GenTemp("TANS-"))
-    sp       = Group(n_str*regions**2,    name=GenTemp("SP-"))
-    sn       = Group(n_str*regions**2,    name=GenTemp("SN-"))
-    snr_gpi  = Group(n_snrgpi*regions**2, name=GenTemp("SN/GPI-"))
-    gpe      = Group(n_gpe*regions**2,    name=GenTemp("GPE-"))
-    thal     = Group(n_thal*regions**2,   name=GenTemp("THAL-"))
+    tans     = Group(n_tans * regions ** 2,   name=GenTemp("TANS-"))
+    sp       = Group(n_str * regions ** 2,    name=GenTemp("SP-"))
+    sn       = Group(n_str * regions ** 2,    name=GenTemp("SN-"))
+    snr_gpi  = Group(n_snrgpi * regions ** 2, name=GenTemp("SN/GPI-"))
+    gpe      = Group(n_gpe * regions ** 2,    name=GenTemp("GPE-"))
+    thal     = Group(n_thal * regions ** 2,   name=GenTemp("THAL-"))
     
     bg.AddGroups([tans, sn, sp, snr_gpi, gpe, thal])
     bg.SetInput(tans)
