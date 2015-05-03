@@ -42,7 +42,7 @@ class SPyNEFrame(wx.Frame):
         shoulder = wx.BoxSizer(wx.VERTICAL)
         canvas   = SPyNECanvas(self, self.object)
 
-        # --- Ortho/Persp ------------------------
+        # --- What the neurons represent ------------------------
         rbPanel  = wx.Panel(self, -1)
         rbBox    = wx.BoxSizer(wx.VERTICAL)
         rbActvt  = wx.RadioButton(rbPanel, 1, 'Activations', style=wx.RB_GROUP)
@@ -58,6 +58,8 @@ class SPyNEFrame(wx.Frame):
         
         gList    = wx.ListBox(self, -1, choices=G)
         pList    = wx.ListBox(self, -1, choices=P)
+        
+        # --- 3D point control ----------
         povCtrl  = Point3DControl(self, canvas.pov, rate=10,
                                   updateFunction=self.RedrawCanvas)
         rotCtrl  = Point3DControl(self, canvas.rot,
@@ -68,6 +70,8 @@ class SPyNEFrame(wx.Frame):
         rbBox.Add(rbInpts, 1, wx.EXPAND, 10)
         rbBox.Add(rbThrshs, 1, wx.EXPAND, 10)
         rbPanel.SetSizer(rbBox)
+        
+        # --- Main control buttons (top row) -----
         bRun    = wx.Button(self, 10, "Run")
         bUpdate = wx.Button(self, 11, "Update")
 
@@ -79,8 +83,6 @@ class SPyNEFrame(wx.Frame):
         shoulder.Add(rbPanel, 1)
         shoulder.Add(povCtrl, 1, wx.EXPAND)
         shoulder.Add(rotCtrl, 1, wx.EXPAND)
-        attempt = NewPoint3DControl(self, canvas.rot)
-        shoulder.Add(attempt, 1, wx.EXPAND)
         shoulder.Add(gList)
         shoulder.Add(pList)
         
@@ -249,42 +251,6 @@ class Point3DControl(wx.Panel):
         self.Sync()
         if self._updateFunction is not None:
             self._updateFunction()
-
-
-class NewPoint3DControl(wx.Panel):
-    """New example"""
-    def __init__(self, parent, point, labels=("X", "Y", "Z"), rate=1,
-                 updateFunction=None):
-        wx.Panel.__init__(self, parent, -1, style=wx.BORDER_SIMPLE)
-        self.point     = point
-        self.rate      = rate
-        self.SetLabels(labels)
-        #self.SetUpdateFunction(updateFunction)
-        self.InitUI()
-
-    def SetLabels(self, labels):
-        if len(labels) == 3:
-            self.__labels = labels
-
-    def Labels(self):
-        return self.__labels
-
-
-    def InitUI(self):
-        """Initializes the new omster"""
-        #self.point.AddNotifiable(self.OnNotify)
-        gbLayout = wx.GridBagSizer(1, 4)
-            
-        
-        st = wx.StaticText(self, -1, "A")
-        val = wx.StaticText(self, -1, "0.0")
-        b1 = wx.Button(self, -1, "<")
-        b2 = wx.Button(self, -1, ">")
-        gbLayout.Add(st, (0,0))
-        gbLayout.Add(b1, (0, 1))
-        gbLayout.Add(val, (0,2))
-        gbLayout.Add(b2, (0,3))
-            
         
     
 class PyNNGroupPanel(wx.Panel):

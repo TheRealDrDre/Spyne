@@ -151,12 +151,12 @@ def DrawPlane(x, y, z, width, depth, color=(0.67, 0.67, 1, PLANE_ALPHA)):
     glVertex3f(x+width, y, z+depth)
     glEnd()
     # The border
-    glColor3f(0.,0.,0.)
+    glColor3f(0., 0., 0.)
     glBegin(GL_LINE_LOOP)
-    glNormal3f(0.,1.,0.)
+    glNormal3f(0., 1., 0.)
     glVertex3f(x, y, z+depth)
-    glVertex3f(x+width, y, z+depth)
-    glVertex3f(x+width, y, z)
+    glVertex3f(x + width, y, z + depth)
+    glVertex3f(x + width, y, z)
     glVertex3f(x, y, z)
     glEnd()
 
@@ -178,13 +178,16 @@ def DisplayText(text, point, font=GLUT_BITMAP_HELVETICA_12):
 
 
 class SPyNECanvas( wx.glcanvas.GLCanvas ):
+    """A Canvas to visualize a model in 3D"""
     INPUTS      = 101
     ACTIVATIONS = 102
     THRESHOLDS  = 103
     
     def __init__(self, parent, circuit=None, runFunction=None):
         attribList = (wx.glcanvas.WX_GL_DOUBLEBUFFER,
-                      wx.glcanvas.WX_GL_RGBA, 0)
+                      wx.glcanvas.WX_GL_RGBA, 0,
+                      wx.glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
+                      wx.glcanvas.WX_GL_SAMPLES, 4)
         wx.glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribList)
         self.context = wx.glcanvas.GLContext(self)
         self.pov  = Point(1.0, 1.0, 2.0)     # Where the camera is
@@ -335,10 +338,10 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
 
         glMatrixMode(GL_PROJECTION)
         # --- Should use Frustum or Ortho depending on a flag
-        glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 3.0)
+        #glFrustum(-0, 2, 0, 2, 0.5, 2.5)
         #glOrtho(-.3, .3, -2.25, 0.25, 1.0, 4.0)
         # Currently uses only ORTHO
-        #glOrtho(-1, 1, -1, 1, -4, 4)
+        glOrtho(-1, 1, -1, 1, -4, 4)
 
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_MULTISAMPLE)

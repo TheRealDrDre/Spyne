@@ -46,8 +46,11 @@ Stocco, Lebiere, & Anderson (2010) as a template.
 
 def CreateSimple():
     c = Circuit()
-    g = Group(40)
-    c.AddGroups([g])
-    c.SetInput(g)
-    c.SetOutput(g)
+    g1 = Group(10)
+    g2 = Group(8)
+    p = Projection(g1, g2)
+    p = Projection(g2, g1)
+    c.AddGroups([g1, g2])
+    c.SetInput(g1)
+    c.SetOutput(g2)
     return c
