@@ -185,9 +185,11 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
     
     def __init__(self, parent, circuit=None, runFunction=None):
         attribList = (wx.glcanvas.WX_GL_DOUBLEBUFFER,
-                      wx.glcanvas.WX_GL_RGBA, 0,
+                      wx.glcanvas.WX_GL_RGBA,
                       wx.glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
-                      wx.glcanvas.WX_GL_SAMPLES, 4)
+                      wx.glcanvas.WX_GL_SAMPLES, 4,
+                      0, 0)
+        #print(wx.glcanvas.isDisplaySupported(wx.glcanvas.WX_GL_SAMPLE_BUFFERS))
         wx.glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribList)
         self.context = wx.glcanvas.GLContext(self)
         self.pov  = Point(1.0, 1.0, 2.0)     # Where the camera is
