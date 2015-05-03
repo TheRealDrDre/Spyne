@@ -41,7 +41,7 @@ def point_diff(p1, p2):
                      p1.y - p2.y,
                      p1.z - p2.z)
 
-class Point(SPyNEObject):
+class Point( SPyNEObject ):
     """
     An object representing a point in 3D space. Points can be seen as
     locations in a coordinate system or a vector in a 3D space.
@@ -92,9 +92,9 @@ class Point(SPyNEObject):
 
     def __mul__(self, other):
         """Multiply two points (as vectors)"""
-        return Point(self.y*other.z - self.z*other.y,
-                     self.z*other.x - self.x*other.z,
-                     self.x*other.y - self.y*other.x)
+        return Point(self.y * other.z - self.z * other.y,
+                     self.z * other.x - self.x * other.z,
+                     self.x * other.y - self.y * other.x)
 
     def Translate(self, x, y, z):
         """Translates a point in 3D space"""

@@ -1,8 +1,7 @@
 ## ---------------------------------------------------------------- ##
-## VISUALIZE.PY
+## VISUALIZE2.PY
 ## ---------------------------------------------------------------- ##
-## This file provides some code to visualize neural networks in
-## Python, using my code.
+## A re-writing of the original "visualize" code.  
 ## ---------------------------------------------------------------- ##
 ## Requires:
 ##    * wxPython
@@ -13,33 +12,28 @@ import sys, multiprocessing, operator, copy
 import numpy     as np
 import colorsys  as col
 import threading as th
-#import glFreeType2
-#import glFreeType
-#import matplotlib.cm as cm
+import wx
 from   ..neural   import *
 from   space    import *
-from   wx.glcanvas  import *
 
 
 try:
+    from wx import glcanvas
+    haveGLCanvas = True
+except ImportError:
+    haveGLCanvas = False
+
+try:
+    # The Python OpenGL package can be found at
+    # http://PyOpenGL.sourceforge.net/
+    from OpenGL.GL import *
     from OpenGL.GLUT import *
-    from OpenGL.GL   import *
-    from OpenGL.GLU  import *
+    haveOpenGL = True
 except ImportError:
-    print """ERROR: PyOpenGL not installed properly.  """
+    haveOpenGL = False
 
-try:
-    from OpenGLContext.scenegraph.text import *
-except ImportError:
-    print """ERROR: OpenGLContext not installed properly.  """
 
-try:
-    import wx
-    from   wx import glcanvas
-except ImportError:
-    print """ERROR: Cannot find wxPython. """
 
-        
 X_PLANE_PADDING = .1
 Y_PLANE_PADDING = .1
 Z_PLANE_PADDING = .5
@@ -111,11 +105,6 @@ def BlackRedYellow(v):
         g = r
     return (r, g, b)
 
-#COLOR_FUNCTION  = BlueBlackRed
-
-#COLOR_FUNCTION  = RedToYellow
-
-#COLOR_FUNCTION  = Jet
 
 COLOR_FUNCTION  = BlackRedYellow
 
@@ -178,12 +167,6 @@ def GroupVolumeSize(g):
     height = 0.
     return Volume(width, height, depth)
 
-
-## ---------------------------------------------------------------- ##
-## WINDOWING
-## ---------------------------------------------------------------- ##
-
-
 def DisplayText(text, point, font=GLUT_BITMAP_HELVETICA_12):
     p=copy.copy(point)
     glColor3f(.0,.0,.0)
@@ -194,19 +177,6 @@ def DisplayText(text, point, font=GLUT_BITMAP_HELVETICA_12):
     return
 
 
-def DisplayText_(text, point, font=GLUT_BITMAP_HELVETICA_12):
-    #print "Display", text
-    f = glFreeType.font_data("Test.ttf", 8)
-    glColor3f(1.0, .0, .0)
-    f.glPrint(50, 50, text)
-    return
-
-
-## ---------------------------------------------------------------- ##
-## WXPYTHON-BASED GUI
-## ---------------------------------------------------------------- ##
-
-#class SPyNECanvas(glcanvas.GLCanvas):
 class SPyNECanvas( wx.glcanvas.GLCanvas ):
     INPUTS      = 101
     ACTIVATIONS = 102
@@ -218,15 +188,11 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         wx.glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribList)
         self.context = wx.glcanvas.GLContext(self)
         self.pov  = Point(1.0, 1.0, 2.0)     # Where the camera is
-        #self.pov  = Point(0., 2., 2.)      # Where the camera is
         self.pos  = Point(0., 0., 0.)      # Where the model is
         self.up   = Point(0., 1., 0.)      # Upwards normal
         self.rot  = Point(0., 0., 0.)      # Rotation matrix
         self.step = .1
-        self.init = True
-        # initial mouse position
-        # self.lastx = self.x = 30
-        # self.lasty = self.y = 30
+        self.init = False
         self.size  = None
         self.__pinlist = None
         self.__selected = None
@@ -240,13 +206,6 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         self.circuit = circuit
         circuit.AddUpdateListener(self.OnUpdate)
 
-#    def OnSize(self, arg):
-#        w,h = self.GetClientSize()
-#        self.w = w
-#        self.h = h
-#        dc = wx.ClientDC(self)
-        #self.Render(dc)
-#        self.OnDraw()
 
     def GetCenter(self):
         """Returns the center of the circuit (for rotation)"""
@@ -275,8 +234,236 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         
     def OnEraseBackground(self, event):
         pass # Do nothing, to avoid flashing on MSW.
+    
+    
+    def OnPaint(self, evt):
+        dc = wx.PaintDC(self)
+        self.SetCurrent(self.context)
+        if not self.init:
+            self.InitGL()
+            self.init = True
+        self.OnDraw()
+        
+        
+    def DrawArrow(self, p1, p2, p3=None, context=None, color=(0., 0., 0.)):
+        """
+        Draws an arrow from point p1 to p2, passing (in case) thorugh
+        a third point p3 to avoid colliding with other groups.
+        """
+        glColor3f(color[0], color[1], color[2])
+        if p1.y-p2.y > 0:
+            v =  1
+            d =  1
+            
+        elif p1.y == p2.y:
+            v =  1
+            d = -1
+            
+        else:
+            v = -1
+            d = -1
+    
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(p1.x, p1.y, p1.z)
+        glVertex3f(p1.x, p1.y - .075 * v, p1.z)
+
+        # if we have a third point, we need to go backwards.
+        if p3 != None:
+            z = min([p3.z, p2.z])
+            glVertex3f(p1.x, p1.y+.075*v-v*Y_GROUP_SPACE, z)
+            #glVertex3f(p2.x, p2.y+.075*d, z)
+            glVertex3f(p2.x, p2.y+d*Y_GROUP_SPACE/2, p2.z)
+        glVertex3f(p2.x, p2.y+.075*d, p2.z)
+        
+        glVertex3f(p2.x, p2.y+.075*d, p2.z)
+        glVertex3f(p2.x, p2.y, p2.z)
+        glEnd()
+        #Front
+        glBegin(GL_TRIANGLES)
+        glNormal(0., 0., 1.)
+        glVertex3f(p2.x - .02,  p2.y + 0.04*d, p2.z)
+        glVertex3f(p2.x, p2.y, p2.z)
+        glVertex3f(p2.x + .02, p2.y + 0.04*d, p2.z)
+        glNormal(0., 0., -1.)
+        glVertex3f(p2.x - .02,  p2.y + 0.04*d, p2.z)
+        glVertex3f(p2.x, p2.y, p2.z)
+        glVertex3f(p2.x + .02, p2.y + 0.04*d, p2.z)
+        glEnd()
 
 
+    def DrawGroup(self, g, x, y, z):
+        """Draws a neural group in space"""
+        if self.__vvalues == self.ACTIVATIONS:
+            A    = g.GetActivations()
+        else:
+            A    = g.inputs
+        V        = GroupVolumeSize(g)
+        w        = V.width
+        d        = V.depth
+        x_offset = w/2.
+        z_offset = d/2.
+        x_ref    = x - x_offset
+        z_ref    = z - z_offset
+
+        if g.GetClamped():
+            DrawPlane(x_ref, y, z_ref, w, d, (.3, .3, .3, PLANE_ALPHA))
+        else:
+            DrawPlane(x_ref, y, z_ref, w, d)
+            
+        z_ref = z + z_offset   # New offset to start drawing neurons from front
+        
+        for i in xrange(g.geometry[0]):
+            for j in xrange(g.geometry[1]):
+                nx = x_ref + GROUP_PADDING + i*NEURON_PADDING + (i+.5)*NEURON_WIDTH
+                nz = z_ref - GROUP_PADDING - j*NEURON_PADDING - (j+.5)*NEURON_WIDTH
+                DrawNeuron(nx, y, nz, A[j*g.geometry[0]+i])
+                
+    def OnSize(self, event):
+        wx.CallAfter(self.DoSetViewport)
+        event.Skip()
+
+    def DoSetViewport(self):
+        size = self.size = self.GetClientSize()
+        self.SetCurrent(self.context)
+        glViewport(0, 0, size.width, size.height)
+
+                
+    def InitGL(self):
+        """Initializes the View and modes"""
+        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glutInitDisplayMode(GLUT_MULTISAMPLE)
+
+        glMatrixMode(GL_PROJECTION)
+        # --- Should use Frustum or Ortho depending on a flag
+        glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 3.0)
+        #glOrtho(-.3, .3, -2.25, 0.25, 1.0, 4.0)
+        # Currently uses only ORTHO
+        #glOrtho(-1, 1, -1, 1, -4, 4)
+
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_MULTISAMPLE)
+
+        glEnable(GL_POINT_SMOOTH)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_POLYGON_SMOOTH)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+        glLineWidth(1.2)
+        #glSampleCoverage(0.99, GL_TRUE)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+        glEnable(GL_COLOR_MATERIAL)
+        glShadeModel (GL_SMOOTH)
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
+        #print glIsEnabled(GL_MULTISAMPLE)
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE)
+        glEnable(GL_SAMPLE_ALPHA_TO_ONE)
+        glEnable(GL_SAMPLE_COVERAGE)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE)
+        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_ONE)
+        #print glIsEnabled(GL_SAMPLE_COVERAGE)
+
+        ## Now the Prospective
+        glMatrixMode(GL_MODELVIEW)
+
+        self.init=True
+    
+    def RotateScene(self):
+        """
+        Rotates the model along the X, Y, Z axis according to the
+        values specified in the ROT (= Rotation) object.
+        """
+        # --- Work on the modelview matrix -----------------
+        # There should be no other modality than ModelView
+        # at this point, but it's better be safe than sorry. 
+        glMatrixMode(GL_MODELVIEW)
+
+        # --- Go to the circuit center ---------------------
+        c = self.GetCenter()
+        glTranslatef(c.x, c.y, c.z)
+        glRotated(self.rot.x, 1, 0, 0)
+        glRotated(self.rot.y, 0, 1, 0)
+        glRotated(self.rot.z, 0, 0, 1)
+
+        # --- Back to the origin ---------------------------
+        glTranslatef(-c.x, -c.y, -c.z)
+
+
+    def TranslateScene(self):
+        """
+        Modifies the position of the object according to the values
+        specified in the POS object (current unimplemented)
+        """
+        c = self.GetCenter()
+        # There should be no other modality than ModelView
+        # at this point, but it's better be safe than sorry. 
+        glMatrixMode(GL_MODELVIEW)
+        
+        # --- Go to the circuit center ---------------------
+        glTranslatef(c.x, c.y, c.z)
+
+        # --- Now translate to simulate a change in POV ----
+        glTranslatef(self.pos.x, -self.pos.y, -self.pos.z)
+
+        # --- Back to the origin ---------------------------
+        glTranslatef(-c.x, -c.y, -c.z)
+        
+        
+    def OnDraw(self):
+        """Redraws the objects on the scene"""
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        print self.pov, self.rot, self.pos
+
+        # --- Setting up the camera ------------------------
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        c = self.GetCenter()
+        #gluLookAt(self.pov.x, self.pov.y, self.pov.z,
+        #          #self.pos.x, self.pos.y, self.pos.z,
+        #         c.x, c.y, c.z,
+        #          self.up.x, self.up.y, self.up.z)
+
+        # --- Draws the circuit ----------------------------
+        glPushMatrix()
+
+        # --- First, all the necessary transformations -----
+        self.RotateScene()
+        self.TranslateScene()
+
+        # --- Then, we draw the objects in the pinlist -----
+        if self.circuit is not None:
+            if self.__pinlist == None:
+                self.__pinlist = self.ArrangeCircuit(self.circuit)
+            O = self.__pinlist
+            for obj, pnts in O.iteritems():
+                if type(obj) == Group:
+                    p = pnts
+                    self.DrawGroup(obj, p.x, p.y, p.z)
+                    v = GroupVolumeSize(obj)
+                    xyz = Point(p.x + v.width/2,
+                                p.y,
+                                p.z + v.depth/2)
+                    DisplayText(obj.name, xyz)
+                elif type(obj) == Projection:
+                    # Sets the color
+                    
+                    if (obj.weights<=0).all():
+                        glEnable(GL_LINE_STIPPLE)
+                        glLineStipple(2, 0xAAAA)
+                    self.DrawArrow(pnts[0], pnts[1], pnts[2])
+                    glDisable(GL_LINE_STIPPLE)
+                    
+        # --- Pops the scene matrix
+        glPopMatrix()
+        
+
+        # Sets the camera
+        
+        self.SwapBuffers()
+    
     def ArrangeCircuit(self, circuit):
         """
         Arranges the groups and the projections in a circuit in a
@@ -285,6 +472,7 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         associated with a 'point' (or more points in case of
         projections) in 3D space.
         """
+        print "Arrange Circuit"
         K = {}  # the group/depth table
         O = {}  # The object table
     
@@ -332,6 +520,7 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         G   = [g for g in G if g not in circuit.GetInput()]
         G.sort(key=lambda x: x.name)
         while NOC > 0 and EPO < 100:
+            print NOC, EPO
             NOC  = 0
             EPO += 1
             for g in G: 
@@ -488,259 +677,5 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
             O[p] = pnts
         return O
 
-
-    #def OnSize(self, event):
-    #    size = self.size = self.GetClientSize()
-    #    if self.GetContext():
-    #        self.SetCurrent()
-    #        h = min([size.width, size.height])
-    #        #glViewport(0, 0, size.width, size.height)
-    #        glViewport(0, 0, h, h)
-    #    event.Skip()
-
-    def OnPaint(self, evt):
-        dc = wx.PaintDC(self)
-        #self.Render(dc)
-
-        #def OnPaint(self, event):
-        #"""Repaints the scene"""
-        dc = wx.PaintDC(self)
-        self.SetCurrent(self.context)
-        if not self.init:
-            self.InitGL()
-            self.init = True
-        self.OnDraw()
-
-#    def Render(self):  #, dc):
-#        self.SetCurrent()
-#        glrender(self.w, self.h)
-#        self.SwapBuffers()
-
-    def DrawArrow(self, p1, p2, p3=None, context=None, color=(0., 0., 0.)):
-        """
-        Draws an arrow from point p1 to p2, passing (in case) thorugh
-        a third point p3 to avoid colliding with other groups.
-        """
-        glColor3f(color[0], color[1], color[2])
-        if p1.y-p2.y > 0:
-            v =  1
-            d =  1
-            
-        elif p1.y == p2.y:
-            v =  1
-            d = -1
-            
-        else:
-            v = -1
-            d = -1
     
-        glBegin(GL_LINE_STRIP)
-        glVertex3f(p1.x, p1.y, p1.z)
-        glVertex3f(p1.x, p1.y - .075 * v, p1.z)
-
-        # if we have a third point, we need to go backwards.
-        if p3 != None:
-            z = min([p3.z, p2.z])
-            glVertex3f(p1.x, p1.y+.075*v-v*Y_GROUP_SPACE, z)
-            #glVertex3f(p2.x, p2.y+.075*d, z)
-            glVertex3f(p2.x, p2.y+d*Y_GROUP_SPACE/2, p2.z)
-        glVertex3f(p2.x, p2.y+.075*d, p2.z)
-        
-        glVertex3f(p2.x, p2.y+.075*d, p2.z)
-        glVertex3f(p2.x, p2.y, p2.z)
-        glEnd()
-        #Front
-        glBegin(GL_TRIANGLES)
-        glNormal(0., 0., 1.)
-        glVertex3f(p2.x - .02,  p2.y + 0.04*d, p2.z)
-        glVertex3f(p2.x, p2.y, p2.z)
-        glVertex3f(p2.x + .02, p2.y + 0.04*d, p2.z)
-        glNormal(0., 0., -1.)
-        glVertex3f(p2.x - .02,  p2.y + 0.04*d, p2.z)
-        glVertex3f(p2.x, p2.y, p2.z)
-        glVertex3f(p2.x + .02, p2.y + 0.04*d, p2.z)
-        glEnd()
-
-
-    def DrawGroup(self, g, x, y, z):
-        """Draws a neural group in space"""
-        if self.__vvalues == self.ACTIVATIONS:
-            A    = g.GetActivations()
-        else:
-            A    = g.inputs
-        V        = GroupVolumeSize(g)
-        w        = V.width
-        d        = V.depth
-        x_offset = w/2.
-        z_offset = d/2.
-        x_ref    = x - x_offset
-        z_ref    = z - z_offset
-
-        if g.GetClamped():
-            DrawPlane(x_ref, y, z_ref, w, d, (.3, .3, .3, PLANE_ALPHA))
-        else:
-            DrawPlane(x_ref, y, z_ref, w, d)
-            
-        z_ref = z + z_offset   # New offset to start drawing neurons from front
-        
-        for i in xrange(g.geometry[0]):
-            for j in xrange(g.geometry[1]):
-                nx = x_ref + GROUP_PADDING + i*NEURON_PADDING + (i+.5)*NEURON_WIDTH
-                nz = z_ref - GROUP_PADDING - j*NEURON_PADDING - (j+.5)*NEURON_WIDTH
-                DrawNeuron(nx, y, nz, A[j*g.geometry[0]+i])
-
     
-    def OnSize(self, event):
-        wx.CallAfter(self.DoSetViewport)
-        event.Skip()
-
-    def DoSetViewport(self):
-        size = self.size = self.GetClientSize()
-        self.SetCurrent(self.context)
-        glViewport(0, 0, size.width, size.height)
-
-                
-    def InitGL(self):
-        """Initializes the OpenGL library"""
-        glClearColor(1.0, 1.0, 1.0, 0.0)
-        glutInitDisplayMode(GLUT_MULTISAMPLE)
-
-        glMatrixMode(GL_PROJECTION)
-        # --- Should use Frustum or Ortho depending on a flag
-        glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 3.0)
-        #glOrtho(-.3, .3, -2.25, 0.25, 1.0, 4.0)
-        # Currently uses only ORTHO
-        #glOrtho(-1, 1, -1, 1, -4, 4)
-
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_MULTISAMPLE)
-
-        glEnable(GL_POINT_SMOOTH)
-        glEnable(GL_LINE_SMOOTH)
-        glEnable(GL_POLYGON_SMOOTH)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
-        glLineWidth(1.2)
-        #glSampleCoverage(0.99, GL_TRUE)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-        glEnable(GL_COLOR_MATERIAL)
-        glShadeModel (GL_SMOOTH)
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
-        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
-        #print glIsEnabled(GL_MULTISAMPLE)
-        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE)
-        glEnable(GL_SAMPLE_ALPHA_TO_ONE)
-        glEnable(GL_SAMPLE_COVERAGE)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE)
-        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_ONE)
-        #print glIsEnabled(GL_SAMPLE_COVERAGE)
-
-        ## Now the Prospective
-        glMatrixMode(GL_MODELVIEW)
-
-        self.init=True
-        glutInit(sys.argv)
-        
-
-    def RotateScene(self):
-        """
-        Rotates the model along the X, Y, Z axis according to the
-        values specified in the ROT (= Rotation) object.
-        """
-        # --- Work on the modelview matrix -----------------
-        # There should be no other modality than ModelView
-        # at this point, but it's better be safe than sorry. 
-        glMatrixMode(GL_MODELVIEW)
-
-        # --- Go to the circuit center ---------------------
-        c = self.GetCenter()
-        glTranslatef(c.x, c.y, c.z)
-        glRotated(self.rot.x, 1, 0, 0)
-        glRotated(self.rot.y, 0, 1, 0)
-        glRotated(self.rot.z, 0, 0, 1)
-
-        # --- Back to the origin ---------------------------
-        glTranslatef(-c.x, -c.y, -c.z)
-
-
-    def TranslateScene(self):
-        """
-        Modifies the position of the object according to the values
-        specified in the POS object (current unimplemented)
-        """
-        c = self.GetCenter()
-        # There should be no other modality than ModelView
-        # at this point, but it's better be safe than sorry. 
-        glMatrixMode(GL_MODELVIEW)
-        
-        # --- Go to the circuit center ---------------------
-        glTranslatef(c.x, c.y, c.z)
-
-        # --- Now translate to simulate a change in POV ----
-        glTranslatef(self.pos.x, -self.pos.y, -self.pos.z)
-
-        # --- Back to the origin ---------------------------
-        glTranslatef(-c.x, -c.y, -c.z)
-
-
-    def OnDraw(self):
-        """Redraws the objects on the scene"""
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        print self.pov, self.rot, self.pos
-
-        # --- Setting up the camera ------------------------
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        c = self.GetCenter()
-        gluLookAt(self.pov.x, self.pov.y, self.pov.z,
-                  #self.pos.x, self.pos.y, self.pos.z,
-                  c.x, c.y, c.z,
-                  self.up.x, self.up.y, self.up.z)
-
-        
-        # --- Applies the rotation -------------------------
-        #self.TranslateScene()
-
-        # --- Draws the circuit ----------------------------
-        glPushMatrix()
-
-        # --- First, all the necessary transformations -----
-        self.RotateScene()
-        self.TranslateScene()
-
-        # --- Then, we draw the objects in the pinlist -----
-        if self.circuit is not None:
-            if self.__pinlist == None:
-                self.__pinlist = self.ArrangeCircuit(self.circuit)
-            O = self.__pinlist
-            for obj, pnts in O.iteritems():
-                if type(obj) == Group:
-                    p = pnts
-                    self.DrawGroup(obj, p.x, p.y, p.z)
-                    v = GroupVolumeSize(obj)
-                    xyz = Point(p.x + v.width/2,
-                                p.y,
-                                p.z + v.depth/2)
-                    DisplayText(obj.name, xyz)
-                elif type(obj) == Projection:
-                    # Sets the color
-                    
-                    if (obj.weights<=0).all():
-                        glEnable(GL_LINE_STIPPLE)
-                        glLineStipple(2, 0xAAAA)
-                    self.DrawArrow(pnts[0], pnts[1], pnts[2])
-                    glDisable(GL_LINE_STIPPLE)
-                    
-        # --- Pops the scene matrix
-        glPopMatrix()
-        
-
-        # Sets the camera
-        
-        self.SwapBuffers()
-        #self.Render() #SwapBuffers()
-        
-

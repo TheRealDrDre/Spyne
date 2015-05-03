@@ -1,4 +1,15 @@
-from visualize import SPyNECanvas
+## ---------------------------------------------------------------- ##
+## GUI.PY
+## ---------------------------------------------------------------- ##
+## This file describes a simple wxPython-based GUI for Spyne.
+## ---------------------------------------------------------------- ##
+## Requires:
+##    * wxPython
+##    * PyOpenGL  -- maybe not
+## ---------------------------------------------------------------- ##
+
+from visualize2 import SPyNECanvas
+
 try:
     import wx
     from   wx import glcanvas
@@ -277,7 +288,10 @@ class NewPoint3DControl(wx.Panel):
         
     
 class PyNNGroupPanel(wx.Panel):
-    """A panel for visualizing information about a given group"""
+    """
+A panel for visualizing information about a given group
+(still unimplemented)
+    """
     def __init__(self, group=None):
         self.group=None
         

@@ -4,6 +4,8 @@ spyne +--- basic
       |
       +--- learning
       |
+      +--- selection
+      |
       +--- gui +--- space
                |
                +--- visualize

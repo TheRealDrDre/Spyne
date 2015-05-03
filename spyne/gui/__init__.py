@@ -1,1 +1,1 @@
-__all__ = ['visualize', 'gui', 'space']
+__all__ = ['visualize', 'visualize2', 'gui', 'space']

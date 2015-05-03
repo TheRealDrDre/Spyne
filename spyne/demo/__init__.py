@@ -1,2 +1,2 @@
-__all__ = ['visualize', 'gui']
+__all__ = ['basalganglia']
 

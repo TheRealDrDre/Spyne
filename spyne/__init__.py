@@ -1,2 +1,2 @@
-## Init file for the pynne package
-__all__=['neural', 'selection', 'naming', 'learning', 'gui']
+## Init file for the SPyNE package
+__all__ = ['basic', 'neural', 'selection', 'naming', 'learning', 'network', 'gui', 'demo']

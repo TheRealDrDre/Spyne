@@ -25,6 +25,7 @@ Stocco, Lebiere, & Anderson (2010) as a template.
     bg.SetInput(tans)
     bg.SetInput(sn)
     bg.SetInput(sp)
+    bg.SetOutput(thal)
 
     p=tans.ConnectTo(sn)
     p.weights=np.random.random((sn.size, tans.size))
@@ -42,3 +43,11 @@ Stocco, Lebiere, & Anderson (2010) as a template.
     p.weights=np.random.random((snr_gpi.size, gpe.size))
     
     return bg
+
+def CreateSimple():
+    c = Circuit()
+    g = Group(40)
+    c.AddGroups([g])
+    c.SetInput(g)
+    c.SetOutput(g)
+    return c
