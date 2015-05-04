@@ -377,22 +377,22 @@ class Circuit(NeuralObject, ParametrizedObject):
         """Initializes the circuit"""
         NeuralObject.__init__(self)
         ParametrizedObject.__init__(self)
-        self.__groups          = []
-        self.__input           = []
-        self.__output          = []
-        self.__recordMode      = PY_NN_RECORD_FINAL
-        self.__updateListeners = []
-        self.__learnListeners  = []
+        self._groups          = []
+        self._input           = []
+        self._output          = []
+        self._recordMode      = PY_NN_RECORD_FINAL
+        self._updateListeners = []
+        self._learnListeners  = []
 
         
     def GetGroups(self):
         """Returns the groups in a network"""
-        return self.__groups
+        return self._groups
 
     def AddGroup(self, group):
         """Adds a new group in a circuit"""
-        if not group in self.__groups:
-            self.__groups.append(group)
+        if not group in self._groups:
+            self._groups.append(group)
 
     def AddGroups(self, groups):
         """Adds a list of new groups to a circuit"""
@@ -404,7 +404,7 @@ class Circuit(NeuralObject, ParametrizedObject):
         Removes a group from the circuit.  Note that this will remove
         all the incoming and outgoing projections as well.
         """
-        if g in self.__groups:
+        if g in self._groups:
             # --- Remove from all the internal projections -----------
             P = self.GetProjections()
             gIn  = [p for p in P if p.groupTo == g]
@@ -419,62 +419,62 @@ class Circuit(NeuralObject, ParametrizedObject):
             
             
             # --- Remove from all the internal lists of groups -------
-            self.__groups.remove(g)
-            if g in self.__input:
+            self._groups.remove(g)
+            if g in self._input:
                 self.RemoveInput(g)
-            if g in self.__output:
+            if g in self._output:
                 self.RemoveOutput(g)
             
                 
 
     def SetInput(self, group):
         """Sets a groups as the input layer"""
-        if group in self.__groups:
-            self.__input.append(group)
+        if group in self._groups:
+            self._input.append(group)
 
     def RemoveInput(self, group):
         """
         Removes a group from the list of inputs. The group is *not*
         removed from the circuit.
         """ 
-        if group in self.__input:
-            self.__input.remove(group)
+        if group in self._input:
+            self._input.remove(group)
 
     def GetInput(self):
         """
         Returns the list of groups that are being used as input groups
         in the circuit.
         """
-        return self.__input
+        return self._input
         
     def SetOutput(self, group):
         """
         Sets a group as part of the output layer.
         """
-        if group in self.__groups:
-            self.__output.append(group)
+        if group in self._groups:
+            self._output.append(group)
 
     def RemoveOutput(self, group):
         """
         Removes a group from the list of the output groups. The group
         is not removed from the circuit.
         """
-        if group in self.__output:
-            self.__output.remove(group)
+        if group in self._output:
+            self._output.remove(group)
 
     def GetOutput(self):
-        return self.__output
+        return self._output
 
     def GetProjections(self, exclusive=True):
         """Returns all the projections within the circuit"""
         p  = []
-        for x in self.__groups:
+        for x in self._groups:
             p.extend(x.incomingProjections)
             p.extend(x.outgoingProjections)
         res   = list(set(p))
         if exclusive:
-            res = [x for x in res if x.groupTo in self.__groups and
-                   x.groupFrom in self.__groups]
+            res = [x for x in res if x.groupTo in self._groups and
+                   x.groupFrom in self._groups]
         return res
 
     def SetInputActivations(self, inputs, clamped=False):
@@ -486,17 +486,17 @@ class Circuit(NeuralObject, ParametrizedObject):
 
     def SetRecordMode(self, mode):
         if mode in [PY_NN_RECORD_NEVER, PY_NN_RECORD_FINAL, PY_NN_RECORD_ALWAYS]:
-            self.__recordMode = mode
+            self._recordMode = mode
         
     def GetRecordMode(self):
-        return self.__recordMode
+        return self._recordMode
 
 
     def Propagate(self, verbose=False, record=False):
         """Updates all the groups in a network"""
-        nodes   = [x for x in self.__groups]
+        nodes   = [x for x in self._groups]
         visited = []
-        bag     = deque(self.__input)
+        bag     = deque(self._input)
         current=None
         while len([x for x in bag if not x in visited]) > 0:
             # Visit the first node.
@@ -513,8 +513,7 @@ class Circuit(NeuralObject, ParametrizedObject):
             bag.extend(children)
             bag=list(set(bag))  # Removes duplicates
             bag=deque([x for x in bag if not x in visited])
-        if verbose:
-            print ""
+            
 
     ## ---------------------------------------------------------------
     ## UPDATE FUNCTION
@@ -532,7 +531,7 @@ class Circuit(NeuralObject, ParametrizedObject):
                nodes=None, verbose=True):
         """Recursively updates a network until it's stable"""
         if nodes is None:
-            nodes=self.__groups
+            nodes=self._groups
 
         A = {x : np.copy(x.activations) for x in nodes}
         c = 0     # Counter (number of epochs where E < error)
@@ -542,13 +541,13 @@ class Circuit(NeuralObject, ParametrizedObject):
         # If the record modality is 'Final' only, we go
         # thorugh the groups one more time to record
         record = False
-        if self.__recordMode == PY_NN_RECORD_FINAL:
-            for g in self.__groups:
+        if self._recordMode == PY_NN_RECORD_FINAL:
+            for g in self._groups:
                 g.RecordActivations()
         
         # If the record modality is 'Always', we set a flag
         # to True and use it when we propagate activation
-        elif self.__recordMode == PY_NN_RECORD_ALWAYS:
+        elif self._recordMode == PY_NN_RECORD_ALWAYS:
             record = True
 
 
@@ -568,12 +567,12 @@ class Circuit(NeuralObject, ParametrizedObject):
 
         # --- Calls functions to be notified upon update
         
-        for func in self.__updateListeners:
+        for func in self._updateListeners:
             func(self, e)
         
-        # --- Return the number of epochs --------
-                    
+        # --- Return the number of epochs --------        
         return e
+            
             
     def Learn(self):
         """Apply learning functions to projections"""
@@ -613,7 +612,7 @@ class Circuit(NeuralObject, ParametrizedObject):
 
     def GetProjectionsBetweenGroups(self, g1, g2):
         """Returns the projections between two groups"""
-        if g1 in self.__groups and g2 in self.__groups:
+        if g1 in self._groups and g2 in self._groups:
             P = g1.outgoingProjections
             R = [x for x in P if x.groupTo == g2]
             return R
@@ -623,17 +622,17 @@ class Circuit(NeuralObject, ParametrizedObject):
 
     def GetUpdateListeners(self):
         """Returns a list of the current update listeners"""
-        return self.__updateListeners
+        return self._updateListeners
 
     def AddUpdateListener(self, listener):
         """Adds a new listener function to be involked on updates"""
-        if listener not in self.__updateListeners:
-            self.__updateListeners.append(listener)
+        if listener not in self._updateListeners:
+            self._updateListeners.append(listener)
 
     def RemoveUpdateListener(self, listener):
         """Removes a function from the list of functions to be called on update""" 
-        if listener in self.__updateListeners:
-            self.__updateListeners.remove(listener)
+        if listener in self._updateListeners:
+            self._updateListeners.remove(listener)
 
     def GetGroupDepth(self, group, fromTop=True):
         """

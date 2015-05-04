@@ -92,7 +92,7 @@ def BlueBlackRed(v):
     if a > 0:
         return (a**2, 0, 0)
     else:
-        return (0,0,a**2)
+        return (0, 0, a**2)
 
 def BlackRedYellow(v):
     if v>=0:
@@ -113,21 +113,20 @@ COLOR_FUNCTION  = BlackRedYellow
 ## ---------------------------------------------------------------- ##
 
 def DrawNeuron(x, y, z, a):
-    """Draws a neuron at a specified location"""
-    y_offset= a*NEURON_WIDTH/2
+    """
+Draws a neuron at a specified location. The neuron is drawn as a
+cube, with a fixed width. Different heights are created by
+scaling along the Y axis according to the neuron's activation. 
+    """
+    y_offset= a * NEURON_WIDTH/2
     glPushMatrix()
-    glTranslate(x, y+y_offset+0.001, z)
+    glTranslate(x, y + y_offset + 0.001, z)
     #if a == 0:
     #    a = 0.0001
     glScalef(1., a, 1.)
     c = COLOR_FUNCTION(a)
-    #glColor4f(1., a, 0., NEURON_ALPHA)
     glColor4f(c[0], c[1], c[2], NEURON_ALPHA)
     glutSolidCube(NEURON_WIDTH)
-    #glColor3f(0., 0., 0.)
-    #glScalef(1.005, 1, 1.005)
-    #glTranslate(0,0.001,0)
-    #glutWireCube(NEURON_WIDTH)
     glPopMatrix()
 
 def DrawPlane(x, y, z, width, depth, color=(0.67, 0.67, 1, PLANE_ALPHA)):
@@ -139,43 +138,48 @@ def DrawPlane(x, y, z, width, depth, color=(0.67, 0.67, 1, PLANE_ALPHA)):
     glNormal3f(0.,1.,0.)
     glVertex3f(x+width, y, z)
     glVertex3f(x, y, z)
-    glVertex3f(x, y, z+depth)
-    glVertex3f(x+width, y, z+depth)
+    glVertex3f(x, y, (z + depth))
+    glVertex3f((x + width), y, (z + depth))
     glEnd()
 
+    # Downward face
     glBegin(GL_POLYGON)
     glNormal3f(0.,-1.,0.)
-    glVertex3f(x+width, y, z)
+    glVertex3f(x + width, y, z)
     glVertex3f(x, y, z)
-    glVertex3f(x, y, z+depth)
-    glVertex3f(x+width, y, z+depth)
+    glVertex3f(x, y, (z + depth))
+    glVertex3f((x + width), y, (z + depth))
     glEnd()
+    
     # The border
     glColor3f(0., 0., 0.)
     glBegin(GL_LINE_LOOP)
     glNormal3f(0., 1., 0.)
     glVertex3f(x, y, z+depth)
-    glVertex3f(x + width, y, z + depth)
-    glVertex3f(x + width, y, z)
+    glVertex3f((x + width), y, (z + depth))
+    glVertex3f((x + width), y, z)
     glVertex3f(x, y, z)
     glEnd()
 
 def GroupVolumeSize(g):
+    """Returns the smallest rectangular box that contains a given group"""
     G      = g.geometry
-    width  = 2.0*GROUP_PADDING + G[0]*NEURON_WIDTH + max(0, G[0]-1)*NEURON_PADDING
-    depth  = 2.0*GROUP_PADDING + G[1]*NEURON_WIDTH + max(0, G[1]-1)*NEURON_PADDING
+    width  = 2.0 * GROUP_PADDING + G[0] * NEURON_WIDTH  \
+             + max(0, G[0]-1) * NEURON_PADDING
+    depth  = 2.0 * GROUP_PADDING + G[1] * NEURON_WIDTH \
+             + max(0, G[1]-1) * NEURON_PADDING
     height = 0.
     return Volume(width, height, depth)
 
 def DisplayText(text, point, font=GLUT_BITMAP_HELVETICA_12):
     p=copy.copy(point)
     glColor3f(.0,.0,.0)
+    
     for c in text:
         glRasterPos2f(p.x, p.y)
         glutBitmapCharacter(font, ord(c))
         p.Translate(glutBitmapWidth(font, ord(c))/500.0, 0, 0)
-    return
-
+    
 
 class SPyNECanvas( wx.glcanvas.GLCanvas ):
     """A Canvas to visualize a model in 3D"""
@@ -186,7 +190,7 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
     def __init__(self, parent, circuit=None, runFunction=None):
         attribList = (wx.glcanvas.WX_GL_DOUBLEBUFFER,
                       wx.glcanvas.WX_GL_RGBA,
-                      wx.glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
+                      wx.glcanvas.WX_GL_SAMPLE_BUFFERS, GL_TRUE,
                       wx.glcanvas.WX_GL_SAMPLES, 4,
                       0, 0)
         #print(wx.glcanvas.isDisplaySupported(wx.glcanvas.WX_GL_SAMPLE_BUFFERS))
@@ -198,7 +202,7 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         self.rot  = Point(0., 0., 0.)      # Rotation matrix
         self.step = .1
         self.init = False
-        self.size  = None
+        self.size = None
         self.__pinlist = None
         self.__selected = None
         self.__vvalues = self.ACTIVATIONS
@@ -252,11 +256,11 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         
     def DrawArrow(self, p1, p2, p3=None, context=None, color=(0., 0., 0.)):
         """
-        Draws an arrow from point p1 to p2, passing (in case) thorugh
-        a third point p3 to avoid colliding with other groups.
+Draws an arrow from point p1 to p2, passing (in case) thorugh
+a third point p3 to avoid colliding with other groups.
         """
         glColor3f(color[0], color[1], color[2])
-        if p1.y-p2.y > 0:
+        if p1.y - p2.y > 0:
             v =  1
             d =  1
             
@@ -275,18 +279,18 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         # if we have a third point, we need to go backwards.
         if p3 != None:
             z = min([p3.z, p2.z])
-            glVertex3f(p1.x, p1.y+.075*v-v*Y_GROUP_SPACE, z)
-            #glVertex3f(p2.x, p2.y+.075*d, z)
+            glVertex3f(p1.x, p1.y + (.075 * v) - (v * Y_GROUP_SPACE), z)
             glVertex3f(p2.x, p2.y+d*Y_GROUP_SPACE/2, p2.z)
+        
         glVertex3f(p2.x, p2.y+.075*d, p2.z)
         
         glVertex3f(p2.x, p2.y+.075*d, p2.z)
         glVertex3f(p2.x, p2.y, p2.z)
         glEnd()
-        #Front
+        
         glBegin(GL_TRIANGLES)
         glNormal(0., 0., 1.)
-        glVertex3f(p2.x - .02,  p2.y + 0.04*d, p2.z)
+        glVertex3f(p2.x - .02,  p2.y + 0.04 * d, p2.z)
         glVertex3f(p2.x, p2.y, p2.z)
         glVertex3f(p2.x + .02, p2.y + 0.04*d, p2.z)
         glNormal(0., 0., -1.)
@@ -300,13 +304,15 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         """Draws a neural group in space"""
         if self.__vvalues == self.ACTIVATIONS:
             A    = g.GetActivations()
+            
         else:
             A    = g.inputs
+            
         V        = GroupVolumeSize(g)
         w        = V.width
         d        = V.depth
-        x_offset = w/2.
-        z_offset = d/2.
+        x_offset = w / 2.
+        z_offset = d / 2.
         x_ref    = x - x_offset
         z_ref    = z - z_offset
 
@@ -328,9 +334,15 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         event.Skip()
 
     def DoSetViewport(self):
+        """Determines the viewport"""
         size = self.size = self.GetClientSize()
+        
+        # We want a square viewport
+        side = min(size.width, size.height)
         self.SetCurrent(self.context)
-        glViewport(0, 0, size.width, size.height)
+        
+        #glViewport(0, 0, size.width, size.height)
+        glViewport(0, 0, side, side)
 
                 
     def InitGL(self):
@@ -339,7 +351,10 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         glutInitDisplayMode(GLUT_MULTISAMPLE)
 
         glMatrixMode(GL_PROJECTION)
-        # --- Should use Frustum or Ortho depending on a flag
+        
+        # --- In the future, maybe use Frustum or
+        #     Ortho depending on a flag ---#
+        
         #glFrustum(-0, 2, 0, 2, 0.5, 2.5)
         #glOrtho(-.3, .3, -2.25, 0.25, 1.0, 4.0)
         # Currently uses only ORTHO
@@ -355,26 +370,21 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
         glLineWidth(1.2)
-        #glSampleCoverage(0.99, GL_TRUE)
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
         glShadeModel (GL_SMOOTH)
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
         glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
-        #print glIsEnabled(GL_MULTISAMPLE)
         glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE)
         glEnable(GL_SAMPLE_ALPHA_TO_ONE)
         glEnable(GL_SAMPLE_COVERAGE)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE)
-        #print glIsEnabled(GL_SAMPLE_ALPHA_TO_ONE)
-        #print glIsEnabled(GL_SAMPLE_COVERAGE)
-
+        
         ## Now the Prospective
         glMatrixMode(GL_MODELVIEW)
 
-        self.init=True
+        self.init = True  # Done.
     
     def RotateScene(self):
         """
@@ -464,9 +474,7 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         # --- Pops the scene matrix
         glPopMatrix()
         
-
-        # Sets the camera
-        
+        # Draw        
         self.SwapBuffers()
     
     def ArrangeCircuit(self, circuit):
@@ -477,7 +485,6 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         associated with a 'point' (or more points in case of
         projections) in 3D space.
         """
-        print "Arrange Circuit"
         K = {}  # the group/depth table
         O = {}  # The object table
     
@@ -493,14 +500,14 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         while len(G) > 0:
             g = G.pop()
             P.append(g)
-            l = K[g]+1 # Putative level
+            l = K[g] + 1 # Putative level
             C = [x.groupTo for x in g.outgoingProjections]
             C = [c for c in C if c in A]
             C = [c for c in C if c not in P]
             C.sort(key=lambda x: x.name)
             for c in C:
                 K[c] = l
-            G = C+G   # Append children to the front
+            G = C + G   # Append children to the front
 
         # Now we proceed backward, looking for missed groups
         # among the incoming pathways.
@@ -521,13 +528,15 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
         # --- as much as possible.
         NOC = 1   # Number of changes
         EPO = 0   # Number of epochs (to avoid infinite recursions)
+        
         G   = copy.copy(sorted(K.keys(), key=lambda x: x.name))
         G   = [g for g in G if g not in circuit.GetInput()]
         G.sort(key=lambda x: x.name)
+        
         while NOC > 0 and EPO < 100:
-            print NOC, EPO
             NOC  = 0
             EPO += 1
+            
             for g in G: 
                 # We make a list of groups that send projections, and divide it
                 # in two: Those that are directly connected in feedback loop (C)
@@ -547,12 +556,12 @@ class SPyNECanvas( wx.glcanvas.GLCanvas ):
                     K[g]+=1
                 
                 if g in circuit.GetOutput():
-                    K[g] = max(K.values())+1
+                    K[g] = max(K.values()) + 1
 
         # After bubble-sorting the groups, we re-number the levels to make
         # sure they are all continuous and no level is skipped.
         l = copy.copy(K.values())
-        ideal = range(max(l)+1)
+        ideal = range(max(l) + 1)
         diff = [x for x in ideal if x not in l]
         while len(diff) > 0:
             for missed in diff:
