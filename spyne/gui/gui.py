@@ -45,9 +45,10 @@ class SPyNEFrame(wx.Frame):
         # --- What the neurons represent ------------------------
         rbPanel  = wx.Panel(self, -1)
         rbBox    = wx.BoxSizer(wx.VERTICAL)
-        rbActvt  = wx.RadioButton(rbPanel, 1, 'Activations', style=wx.RB_GROUP)
-        rbInpts  = wx.RadioButton(rbPanel, 2, 'Inputs', style=wx.RB_GROUP)
-        rbThrshs = wx.RadioButton(rbPanel, 3, 'Thresholds', style=wx.RB_GROUP)
+        rbActvt  = wx.RadioButton(rbPanel, 1, 'Activations',
+                                  style=wx.RB_GROUP)
+        rbInpts  = wx.RadioButton(rbPanel, 2, 'Inputs')
+        rbThrshs = wx.RadioButton(rbPanel, 3, 'Thresholds')
         
         # --- Group and Projection viewer --------
         G        = [x.name for x in self.object.GetGroups()]

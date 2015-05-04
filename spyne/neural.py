@@ -150,7 +150,7 @@ class Group(NeuralObject, ContextContainer):
         else:
             self.name=name
         self.SetActivationFunction(activationFunction)
-        self.ActivationDerivative=activationDerivative
+        self.ActivationDerivative = activationDerivative
         self.SetUpdateFunction(updateFunction)
         self.size        = size
         self.activations = np.zeros((size, 1))

@@ -305,8 +305,11 @@ a third point p3 to avoid colliding with other groups.
         if self.__vvalues == self.ACTIVATIONS:
             A    = g.GetActivations()
             
-        else:
+        elif self.__vvalues == self.INPUTS:
             A    = g.inputs
+        
+        else:
+            A    = g.thresholds
             
         V        = GroupVolumeSize(g)
         w        = V.width
