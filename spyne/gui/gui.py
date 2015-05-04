@@ -8,7 +8,7 @@
 ##    * PyOpenGL  -- maybe not
 ## ---------------------------------------------------------------- ##
 
-from visualize2 import SPyNECanvas
+from visualize import SPyNECanvas
 
 try:
     import wx
