@@ -54,3 +54,37 @@ def CreateSimple():
     c.SetInput(g1)
     c.SetOutput(g2)
     return c
+
+def CreateSimple(regions=1, n_cortex=100, n_str=20,
+                 n_gpe=20, n_snrgpi=10, n_thal=10):
+    bg       = Circuit()
+    sp       = Group(n_str * regions ** 2,    name=GenTemp("SP-"))
+    sn       = Group(n_str * regions ** 2,    name=GenTemp("SN-"))
+    snr_gpi  = Group(n_snrgpi * regions ** 2, name=GenTemp("SN/GPI-"))
+    gpe      = Group(n_gpe * regions ** 2,    name=GenTemp("GPE-"))
+    thal     = Group(n_thal * regions ** 2,   name=GenTemp("THAL-"))
+    
+    #sp.geometry = (5, 4)
+    #sn.geometry = (5, 4)
+    #gpe.geometry = (5, 4)
+    #thal.geometry = (5, 2)
+    #snr_gpi.geometry = (5, 2) 
+    
+    bg.AddGroups([sn, sp, snr_gpi, gpe, thal])
+    bg.SetInput(sn)
+    bg.SetInput(sp)
+    bg.SetOutput(thal)
+
+    p = sn.ConnectTo(snr_gpi)
+    p.weights=np.random.random((snr_gpi.size, sn.size))
+
+    p = sp.ConnectTo(gpe)
+    p.weights=np.random.random((gpe.size, sp.size))
+
+    p = gpe.ConnectTo(snr_gpi)
+    p.weights=np.random.random((snr_gpi.size, gpe.size))
+    
+    p = snr_gpi.ConnectTo(thal)
+    p.weights = np.random.random((snr_gpi.size, gpe.size))
+
+    return bg

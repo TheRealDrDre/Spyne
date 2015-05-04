@@ -43,7 +43,7 @@ class SPyNEFrame(wx.Frame):
         canvas   = SPyNECanvas(self, self.object)
 
         # --- What the neurons represent ------------------------
-        rbPanel  = wx.Panel(self, -1)
+        rbPanel  = wx.Panel(self, wx.ID_ANY)
         rbBox    = wx.BoxSizer(wx.VERTICAL)
         rbActvt  = wx.RadioButton(rbPanel, 1, 'Activations',
                                   style=wx.RB_GROUP)
@@ -57,13 +57,15 @@ class SPyNEFrame(wx.Frame):
         G.sort()
         P.sort()
         
-        gList    = wx.ListBox(self, -1, choices=G)
-        pList    = wx.ListBox(self, -1, choices=P)
+        gList    = wx.ListBox(self, wx.ID_ANY, choices=G)
+        pList    = wx.ListBox(self, wx.ID_ANY, choices=P)
         
         # --- 3D point control ----------
         povCtrl  = Point3DControl(self, canvas.pov, rate=10,
+                                  main="Position",
                                   updateFunction=self.RedrawCanvas)
         rotCtrl  = Point3DControl(self, canvas.rot,
+                                  main="Rotation",
                                   updateFunction=self.RedrawCanvas)
 
         # --- Add controls -----------------------
@@ -175,11 +177,12 @@ class SPyNEFrame(wx.Frame):
 
 class Point3DControl(wx.Panel):
     """A Panel that controls the coordinates of a point"""
-    def __init__(self, parent, point, labels=("X", "Y", "Z"), rate=1,
-                 updateFunction=None):
+    def __init__(self, parent, point, labels=("X", "Y", "Z"),
+                 main="Point", rate=1, updateFunction=None):
         wx.Panel.__init__(self, parent, -1, style=wx.BORDER_SIMPLE)
         self.point     = point
         self.rate      = rate
+        self.main      = main
         self.SetSpins([])
         self.SetLabels(labels)
         self.SetUpdateFunction(updateFunction)
@@ -188,23 +191,23 @@ class Point3DControl(wx.Panel):
 
     def SetLabels(self, labels):
         if len(labels) == 3:
-            self.__labels = labels
+            self._labels = labels
 
     def Labels(self):
-        return self.__labels
+        return self._labels
 
     def SetSpins(self, spins):
-        self.__spins = spins
+        self._spins = spins
 
     def Spins(self):
-        return self.__spins
+        return self._spins
 
     def SetUpdateFunction(self, function):
         self._updateFunction = function
 
     def Sync(self):
         """Reloads the values from the point"""
-        for sc, i, in zip(self.__spins, \
+        for sc, i, in zip(self._spins, \
                           (self.point.x, self.point.y, self.point.z)):
             sc.SetValue(i*self.rate)
 
@@ -214,13 +217,16 @@ class Point3DControl(wx.Panel):
     def InitUI(self):
         """Initializes the Spin controls"""
         self.point.AddNotifiable(self.OnNotify)
+        
+        mainLbl = wx.StaticText(self, wx.ID_ANY, self.main)
+        
         gbLayout = wx.GridBagSizer(3, 2)
         # Create the spins
         for i in range(3):
-            self.__spins.append(wx.SpinCtrl(self, i))
+            self._spins.append(wx.SpinCtrl(self, i))
             
         # Initialize the spins
-        for sc, i in zip(self.__spins, range(3)):
+        for sc, i in zip(self._spins, range(3)):
             sc.SetRange(-10000, 10000)
             sc.SetValue(0)
             gbLayout.Add(sc, (i, 1))
@@ -229,25 +235,29 @@ class Point3DControl(wx.Panel):
             st = wx.StaticText(self, -1, l)
             gbLayout.Add(st, (i,0))
 
+        box = wx.BoxSizer(wx.VERTICAL)
+        box.Add(mainLbl)
+        box.Add(gbLayout)
         
         self.Sync()
-        self.SetSizerAndFit(gbLayout)
-        self.Bind(wx.EVT_SPINCTRL, self.OnSpin, self.__spins[0])
-        self.Bind(wx.EVT_SPINCTRL, self.OnSpin, self.__spins[1])
-        self.Bind(wx.EVT_SPINCTRL, self.OnSpin, self.__spins[2])
+        #self.SetSizerAndFit(gbLayout)
+        self.SetSizerAndFit(box)
+        
+        for s in self._spins:
+            self.Bind(wx.EVT_SPINCTRL, self.OnSpin, s)
 
     
     def OnSpin(self, evt):
         """Updates the internal point"""
-        #print self, evt.GetId(), evt.GetInt()
         i = evt.GetId()    # Spin identifier (x, y, z)
         v = evt.GetInt()   # Value
+        
         if i == 0:
-            self.point.x = float(v)/self.rate
+            self.point.x = float(v) / self.rate
         elif i == 1:
-            self.point.y = float(v)/self.rate
+            self.point.y = float(v) / self.rate
         elif i == 2:
-            self.point.z = float(v)/self.rate
+            self.point.z = float(v) / self.rate
 
         self.Sync()
         if self._updateFunction is not None:

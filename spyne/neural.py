@@ -6,6 +6,7 @@
 
 import math  as m
 import numpy as np
+import copy
 from collections import deque
 from selection   import Boltzmann
 from basic       import SPyNEObject, ParametrizedObject, ContextContainer
@@ -154,7 +155,7 @@ class Group(NeuralObject, ContextContainer):
         self.SetUpdateFunction(updateFunction)
         self.size        = size
         self.activations = np.zeros((size, 1))
-        self.geometry    = self.activations.shape
+        self.geometry    = copy.copy(self.activations.shape)
         self.baselines   = np.zeros((size, 1))
         self.mask        = np.ones((size, 1))
         self.thresholds  = np.zeros((size, 1))
