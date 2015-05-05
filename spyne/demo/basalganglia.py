@@ -75,16 +75,16 @@ def CreateSimple(regions=1, n_cortex=100, n_str=20,
     bg.SetInput(sp)
     bg.SetOutput(thal)
 
-    p = sn.ConnectTo(snr_gpi)
-    p.weights=np.random.random((snr_gpi.size, sn.size))
+    p1 = sn.ConnectTo(snr_gpi)
+    p1.weights=np.random.random((snr_gpi.size, sn.size))
 
-    p = sp.ConnectTo(gpe)
-    p.weights=np.random.random((gpe.size, sp.size))
+    p2 = sp.ConnectTo(gpe)
+    p2.weights=np.random.random((gpe.size, sp.size))
 
-    p = gpe.ConnectTo(snr_gpi)
-    p.weights=np.random.random((snr_gpi.size, gpe.size))
+    p3 = gpe.ConnectTo(snr_gpi)
+    p3.weights=np.random.random((snr_gpi.size, gpe.size))
     
-    p = snr_gpi.ConnectTo(thal)
-    p.weights = np.random.random((snr_gpi.size, gpe.size))
+    p4 = snr_gpi.ConnectTo(thal)
+    p4.weights = np.random.random((snr_gpi.size, thal.size))
 
     return bg

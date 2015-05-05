@@ -336,17 +336,17 @@ class Projection(NeuralObject, ContextContainer):
         self.groupTo          = groupTo
         self.weights          = np.array(0)
         self.mask             = np.array(0)
-        #self.SetLearningFunction(learningFunction)
         self.learningFunction = learningFunction
         self.learningRate     = 0
         self.learningEnabled  = False
         
         self.SetContext(context)
                 
-        if groupFrom is not None and groupTo is not None:
+        if self.groupFrom is not None and self.groupTo is not None:
             self.weights = np.zeros((groupTo.size, groupFrom.size))
             self.mask    = np.ones((groupTo.size, groupFrom.size))
-
+            print "Ws = %s and M = %s" % (self.weights.shape, self.mask.shape)
+           
         if groupFrom is not None:
             groupFrom.AddOutgoingProjection(self)
 
@@ -354,13 +354,18 @@ class Projection(NeuralObject, ContextContainer):
             groupTo.AddIncomingProjection(self)
 
     def __repr__(self):
-        return "<%s%s:%s-->%s>" % (self.name, self.weights.shape,
-                                   self.groupFrom, self.groupTo)
+        """A string representing a projection"""
+        return "<%s%s:%s --> %s>" % (self.name, self.weights.shape,
+                                     self.groupFrom, self.groupTo)
     
     def PropagateThrough(self):
+        """
+Updates the activation values of the destination group after propagating
+the activation of the source group through the weight matri
+        """
         w   = self.weights * self.mask
         res = np.dot(w, self.groupFrom.activations)
-        self.groupTo.inputs+=res
+        self.groupTo.inputs += res
 
     def Learn(self):
         """Invokes the internal learning function"""

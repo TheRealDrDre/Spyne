@@ -78,7 +78,7 @@ def LViLearningRule(p, context=None):
         W  = p.weights
         M  = p.mask
         X  = p.groupFrom.activations
-        dW = d*e2*X.T*M
+        dW = d * e2 * X.T * M
         if context.GetParameter('TRACE_PVLV'):
             print "LVi delta: %s" % dW
         W += dW
@@ -234,7 +234,7 @@ def Temporal_Update(g, context=None):
 ##  DA = Dopamine neurons
 ## ---------------------------------------------------------------- ##
 def Model01():
-    """Creates a basic instance of the BABE Model"""
+    """Creates a basic instance of Crinion's model"""
     # --- The nuclei --------------------------------
     sn      = Group(6, name="SN")     ;  sp  = Group(6, name="SP")         
     context = Group(9, name="Context");  snr = Group(6, name="SNr/GPi")             
