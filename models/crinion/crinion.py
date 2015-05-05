@@ -269,12 +269,12 @@ def Model01():
     c2sn.learningEnabled   = True
     c2sp.learningEnabled   = True
 
-    da2sn.weights          = np.ones(da2sn.weights.shape)/10.0
-    da2sp.weights          = np.ones(da2sp.weights.shape)/-10.0
-    sn2snr.weights         = np.ones(sn2snr.weights.shape)*np.eye(sn.size)
-    sp2snr.weights         = np.ones(sp2snr.weights.shape)*np.eye(sp.size)*-1
-    snr2sn.weights         = np.ones(sn2snr.weights.shape)*np.eye(sn.size)*0.2
-    snr2sp.weights         = np.ones(sn2snr.weights.shape)*np.eye(sn.size)*0.2
+    da2sn.weights          = np.ones(da2sn.weights.shape) / 10.0
+    da2sp.weights          = np.ones(da2sp.weights.shape) / -10.0
+    sn2snr.weights         = np.ones(sn2snr.weights.shape) * np.eye(sn.size)
+    sp2snr.weights         = np.ones(sp2snr.weights.shape) * np.eye(sp.size) * -1
+    snr2sn.weights         = np.ones(sn2snr.weights.shape) * np.eye(sn.size) * 0.2
+    snr2sp.weights         = np.ones(sn2snr.weights.shape) * np.eye(sn.size) * 0.2
 
     ## --- The PVLV system -------------------------------------------- ##
 
