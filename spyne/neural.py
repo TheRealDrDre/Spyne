@@ -157,7 +157,7 @@ class Group(NeuralObject, ContextContainer):
         self.SetUpdateFunction(updateFunction)
         self._size        = size
         self._activations = np.zeros((size, 1))
-        self.geometry    = copy.copy(self.activations.shape)
+        self._geometry    = copy.copy(self.activations.shape)
         self._baselines   = np.zeros((size, 1))
         self._mask        = np.ones((size, 1))
         self._thresholds  = np.zeros((size, 1))
@@ -453,7 +453,7 @@ class Projection(NeuralObject, ContextContainer):
         if self.groupFrom is not None and self.groupTo is not None:
             self.weights = np.zeros((groupTo.size, groupFrom.size))
             self.mask    = np.ones((groupTo.size, groupFrom.size))
-            print "Ws = %s and M = %s" % (self.weights.shape, self.mask.shape)
+            #print "Ws = %s and M = %s" % (self.weights.shape, self.mask.shape)
            
         if groupFrom is not None:
             groupFrom.AddOutgoingProjection(self)
@@ -471,7 +471,6 @@ class Projection(NeuralObject, ContextContainer):
 Updates the activation values of the destination group after propagating
 the activation of the source group through the weight matri
         """
-        print self
         w   = self.weights * self.mask
         res = np.dot(w, self.groupFrom.activations)
         self.groupTo.inputs += res

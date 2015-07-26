@@ -1,5 +1,7 @@
 from neural import *
 import numpy as np
+import copy
+import random
 
 ## ---------------------------------------------------------------- ##
 ## CHL - CONTRASTIVE HEBBIAN LEARNING
@@ -39,8 +41,10 @@ def chl_synchronous(c, inputs, targets, rate=0.2):
         c_outputs[i].SetClamped(False)
 
     for p in projections:
-        delta = antihebb[p.groupTo]*hebb[p.groupFrom].T - hebb[p.groupTo]*hebb[p.groupFrom].T
-        p.weights+=delta
+        # I think this was a mistake
+        #delta = antihebb[p.groupTo] * hebb[p.groupFrom].T - hebb[p.groupTo] * hebb[p.groupFrom].T
+        delta = antihebb[p.groupTo] * antihebb[p.groupFrom].T - hebb[p.groupTo] * hebb[p.groupFrom].T
+        p.weights += delta
 
 
 def chl_asynchronous(c, inputs, targets, rate=0.2):
@@ -108,15 +112,39 @@ def chla(c, inputs, targets,
     while (max(e) > error and i < max_epochs):
         i += 1
         e  = []
-        for ins, tgts in zip(inputs, targets):
+        pattern_set = copy.copy(zip(inputs, targets))
+        random.shuffle(pattern_set)
+        for ins, tgts in pattern_set:
             func(c, ins, tgts, rate)
             c.Update(verbose=False)
             A = [x.activations for x in c.GetOutput()]
-            e.append(sum(map(Error, A, tgts)))
+            #e.append(sum(map(Error, A, tgts)))
+            # Redo all the tests insetad!
+            e.append(test(c, inputs, targets, error))
         if verbose:
             print "[%d] %s" % (i, max(e))
     return i
-
+    
+    
+def test(c, input_set, target_set, error=10e-4, verbose=False):
+    """Tests the correct learning of a series of patterns"""
+    e = []
+    i = 0
+    for ins, tgts in zip(input_set, target_set):
+        i += 1
+        c.SetInputActivations(ins, clamped=True)
+        c.Update(verbose=False)
+        A = [x.activations for x in c.GetOutput()]
+        current_error = sum(map(Error, A, tgts))
+        if verbose:
+            if current_error < error:
+                print("Pattern %d: Pass" % i)
+            else:
+                print("Pattern %d: *Failed*" % i)
+        e.append(current_error)
+    results = np.array(e) < error
+    return max(e)
+        
 
 
 ## ---------------------------------------------------------------- ##
