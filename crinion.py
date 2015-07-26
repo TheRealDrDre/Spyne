@@ -3,11 +3,11 @@
 #
 
 import math, random
-import selection as sel
+#import selection as sel
 import numpy     as np
-from   neural    import Group, Projection, Circuit, GenericUpdate
-from   neural    import Linear, Tanh_plus, Step, boltzmann_kwta, SSigmoid, STanh_plus
-import neural    as neu
+from   spyne.neural    import Group, Projection, Circuit, GenericUpdate
+from   spyne.neural    import Linear, Tanh_plus, Step, boltzmann_kwta, SSigmoid, STanh_plus
+import spyne.neural    as neu
 
 
 ## ---------------------------------------------------------------- ##
@@ -38,52 +38,52 @@ def PVfilter(circuit):
         or PVi.activations[0,0] < tmin or PVe.activations[0,0] < tmin
     return PVfilter
 
-def PViLearningRule(p, context=None):
+def PViLearningRule(p, word=None):
     """The PVi algorithm learning rule"""
-    PVi = context.GetGroupByName("PVi")
-    PVe = context.GetGroupByName("PVe")
+    PVi = word.GetGroupByName("PVi")
+    PVe = word.GetGroupByName("PVe")
     d   = PVe.activations - PVi.activations
     X   = p.groupFrom.activations
     W   = p.weights
     M   = p.mask
     dW  = e1*d*X.T*M
-    if context.GetParameter('TRACE_PVLV'):
+    if word.GetParameter('TRACE_PVLV'):
         print "PVi delta: %s" % dW
     W  += dW
 
 ## See Eq. (5), (6), (7)
-def LVeLearningRule(p, context=None):
+def LVeLearningRule(p, word=None):
     """The LVe learning rule"""
-    PVe = context.GetGroupByName("PVe")
-    LVe = context.GetGroupByName("LVe")
-    e1  = context.GetParameter("e1")
-    if PVfilter(context):
+    PVe = word.GetGroupByName("PVe")
+    LVe = word.GetGroupByName("LVe")
+    e1  = word.GetParameter("e1")
+    if PVfilter(word):
         # Learning occurs only if PVi or PVe are active
         d  = PVe.activations - LVe.activations
         W  = p.weights
         M  = p.mask
         X  = p.groupFrom.activations
         dW = d*e1*X.T*M
-        if context.GetParameter('TRACE_PVLV'):
+        if word.GetParameter('TRACE_PVLV'):
             print "LVe delta: %s, mask: %s" % (dW, M)
         W += dW
 
-def LViLearningRule(p, context=None):
+def LViLearningRule(p, word=None):
     """The LVi learning rule"""
-    LVi = context.GetGroupByName("PVi")
-    LVe = context.GetGroupByName("PVe")
-    e2  = context.GetParameter("e2")
-    if PVfilter(context):
+    LVi = word.GetGroupByName("PVi")
+    LVe = word.GetGroupByName("PVe")
+    e2  = word.GetParameter("e2")
+    if PVfilter(word):
         d  = LVe.activations - LVi.activations
         W  = p.weights
         M  = p.mask
         X  = p.groupFrom.activations
         dW = d * e2 * X.T * M
-        if context.GetParameter('TRACE_PVLV'):
+        if word.GetParameter('TRACE_PVLV'):
             print "LVi delta: %s" % dW
         W += dW
 
-def LVUpdate(lv, context=None):
+def LVUpdate(lv, word=None):
     """LV Update functions---considers only changes in input"""
     lv.ClearInputs()
     for p in lv.incomingProjections:
@@ -94,25 +94,25 @@ def LVUpdate(lv, context=None):
         lv.inputs+=dI
     lv.CalculateActivations()
 
-def PVLV_Update(g, context=None):
+def PVLV_Update(g, word=None):
     """
     A simple Update for the PVLV system. It just calls the
     GenericUpdate function in the neural model, but also prints
-    out a trace if the context's TRACE_PVLV parameter is True.
+    out a trace if the word's TRACE_PVLV parameter is True.
 
     Arguments
     ---------
     g       --> the neural.Group instance that is being updated;
-    context --> the neural context (i.e. a neural.Circuit class).
+    word --> the neural word (i.e. a neural.Circuit class).
     """
     GenericUpdate(g)
-    if context.GetParameter('TRACE_PVLV'):
+    if word.GetParameter('TRACE_PVLV'):
         print "  %s: input=%s, X=%s" % (g, g.inputs, g.activations)
 
 
 # -------------------------------------------------------------------
 
-def DopamineUpdate(da, context):
+def DopamineUpdate(da, word):
     """
     The update function for dopamine neurons. Dopamine update depends 
     on the PVLV system. In particular Dopamine output D is updated
@@ -132,16 +132,16 @@ def DopamineUpdate(da, context):
     for p in LV:
         p.PropagateThrough()
     
-    if PVfilter(context):
+    if PVfilter(word):
         for p in PV:
             p.PropagateThrough()
     da.CalculateActivations()
 
-    if context.GetParameter('TRACE_PVLV'):
-        PVe = context.GetGroupByName("PVe")
+    if word.GetParameter('TRACE_PVLV'):
+        PVe = word.GetGroupByName("PVe")
         print "  %s: input=%s, X=%s" % (PVe, PVe.inputs, PVe.activations)
     
-    if context.GetParameter('TRACE_DA'):
+    if word.GetParameter('TRACE_DA'):
         print "  Da: input=%s, PVfil=%s, X=%s" % (da.inputs, PVfilter(), da.activations)
 
 
@@ -159,10 +159,10 @@ def DopamineUpdate(da, context):
 da1 = 1.5
 da2 = 1.0
 
-def SN_Update(group, context):
+def SN_Update(group, word):
     """The update rule for SN and SP cells in the striatum"""
     group.ClearInputs()
-    snr = context.GetGroupByName("SNr/GPi")
+    snr = word.GetGroupByName("SNr/GPi")
     for p in group.incomingProjections:
         if p.groupFrom.name.startswith("Da"):# and PVe.activations[0,0]!=0.50:
             D1 = np.dot(p.weights, p.groupFrom.activations)
@@ -172,22 +172,22 @@ def SN_Update(group, context):
                 D2*=-1
             dX = D1/2 + D2/2
             dX *= Step(snr.activations)
-            if context.GetParameter('TRACE_UPDATE'):
+            if word.GetParameter('TRACE_UPDATE'):
                 print "  Group: %s,\n  Dopa D1: %s\n  D2: %s\n  dX: %s" % (group, D1, D2, dX)
             group.inputs += dX
         else:
             p.PropagateThrough()
     group.CalculateActivations()
-    if context.GetParameter('TRACE_UPDATE'):
+    if word.GetParameter('TRACE_UPDATE'):
         print "  Group: %s,\n  Inputs=%s\n  X=%s" % (group, group.inputs, group.activations.T)
 
 
-def SN_LearningRule(p, context=None, rate="da1"):
+def SN_LearningRule(p, word=None, rate="da1"):
     """
     The learning rule for the striatonigral neurons.
     """
-    r   = context.GetParameter(rate)
-    da  = context.GetGroupByName("Da")
+    r   = word.GetParameter(rate)
+    da  = word.GetGroupByName("Da")
     D   = abs(np.max(da.activations))
     Y1  = p.groupTo.activations
     Y0  = p.groupTo.GetHistory()[-1]
@@ -197,18 +197,18 @@ def SN_LearningRule(p, context=None, rate="da1"):
     X   = np.copy(p.groupFrom.activations)
     dW  = r*D*np.dot(Y, X.T)
     dW *= M
-    if context.GetParameter("TRACE_STRIATUM_LEARNING"):
+    if word.GetParameter("TRACE_STRIATUM_LEARNING"):
         print "  P=%s,\n  Y=%s,\n  dW=%s" % (p, Y, dW)
     W  += dW
     
 
-def SP_LearningRule(p, context=None):
+def SP_LearningRule(p, word=None):
     """
     The learning rule for striatopallidal neurons. The rule is the
     same as for the striatonigral rules, but uses a different
     dopamine parameter, reflecting the use of Da2-type receptors.
     """
-    return SN_LearningRule(p, context, rate="da2")
+    return SN_LearningRule(p, word, rate="da2")
 
 
 
@@ -216,7 +216,7 @@ def SP_LearningRule(p, context=None):
 ## LANGUAGE NETWORK
 ## ---------------------------------------------------------------- ##
 
-def Temporal_Update(g, context=None):
+def Temporal_Update(g, word=None):
     """
     Let's see
     """
@@ -228,16 +228,23 @@ def Temporal_Update(g, context=None):
 ## ---------------------------------------------------------------- ##
 ##  SN      = Striatonigral cells;
 ##  SP      = Striatopallidal cells;
-##  Context = Cortical cells;
+##  Word = Cortical cells;
 ##  SNR     = SNR/GPi/Thalamus cells
 ##  TANS    = Striatal ACh interneurons;
 ##  DA = Dopamine neurons
 ## ---------------------------------------------------------------- ##
 def Model01():
     """Creates a basic instance of Crinion's model"""
+    word = Group(9, name="Word");               
+    semantic = Group(size=8, name="Semantic", geometry=(4,2))
+    vocal = Group(size=4, name="Vocal")
+    category = Group(size=4, name="Category")
+    language = Group(size=2, name="Language")
+    
     # --- The nuclei --------------------------------
+    
+    snr = Group(6, name="SNr/GPi")
     sn      = Group(6, name="SN")     ;  sp  = Group(6, name="SP")         
-    context = Group(9, name="Context");  snr = Group(6, name="SNr/GPi")             
     tans    = Group(3, name="TAN")    ;  da  = Group(1, name="Da")         
     da.SetActivationFunction(Linear)
    
@@ -248,9 +255,9 @@ def Model01():
     da.SetUpdateFunction(DopamineUpdate)
 
     ## --- Projections -----------------------------------------------
-    c2sn     = context.ConnectTo(sn);   c2sp     = context.ConnectTo(sp)
+    c2sn     = word.ConnectTo(sn);      c2sp     = word.ConnectTo(sp)
     tans2sn  = tans.ConnectTo(sn);      tans2sp  = tans.ConnectTo(sp);
-    c2tans   = context.ConnectTo(tans); da2tans  = da.ConnectTo(tans);      
+    c2tans   = word.ConnectTo(tans);    da2tans  = da.ConnectTo(tans);      
     da2sn    = da.ConnectTo(sn);        da2sp    = da.ConnectTo(sp);
     sn2snr   = sn.ConnectTo(snr);       sp2snr   = sp.ConnectTo(snr)
 
@@ -283,8 +290,8 @@ def Model01():
 
     PVe2da = PVe.ConnectTo(da);      LVe2da = LVe.ConnectTo(da)
     PVi2da = PVi.ConnectTo(da);      LVi2da = LVi.ConnectTo(da)
-    c2PVi  = context.ConnectTo(PVi); c2LVe  = context.ConnectTo(LVe)
-    c2LVi  = context.ConnectTo(LVi)
+    c2PVi  = word.ConnectTo(PVi); c2LVe  = word.ConnectTo(LVe)
+    c2LVi  = word.ConnectTo(LVi)
 
     LVi.SetUpdateFunction(LVUpdate)
     LVe.SetUpdateFunction(LVUpdate)
@@ -316,7 +323,7 @@ def Model01():
     c2LVi.learningEnabled  = True
 
     # --- Tricks for cute visualization
-    context.geometry = (3, 3)
+    word.geometry = (3, 3)
     sn.geometry      = (3, 2)
     sp.geometry      = (3, 2)
 
@@ -325,7 +332,7 @@ def Model01():
     M1 = Circuit()
     
     # --- Add and set up the groups
-    for x in [sn, sp, context, tans, da, snr,
+    for x in [sn, sp, word, tans, da, snr,
               PVe, PVi, LVe, LVi]:
         x.SetContext(M1)
         M1.AddGroup(x)
@@ -337,7 +344,7 @@ def Model01():
         p.SetContext(M1)
 
     # --- Ok now: input and output
-    M1.SetInput(context)
+    M1.SetInput(word)
     M1.SetOutput(snr)
 
     # --- Parameters for visualization, learning, and tracing --------

@@ -7,7 +7,6 @@
 import math  as m
 import numpy as np
 import copy
-import operator
 from collections import deque
 from selection   import Boltzmann
 from basic       import SPyNEObject, ParametrizedObject, ContextContainer
@@ -101,7 +100,6 @@ class NeuralObject (SPyNEObject):
     """The root of all objects"""
     def __init__( self ):
         self.name = GenTemp("NeuralObject-")
-            
 
 
 def GenericUpdate(group, context=None):
@@ -155,13 +153,13 @@ class Group(NeuralObject, ContextContainer):
         self.SetActivationFunction(activationFunction)
         self.ActivationDerivative = activationDerivative
         self.SetUpdateFunction(updateFunction)
-        self._size        = size
-        self._activations = np.zeros((size, 1))
+        self.size        = size
+        self.activations = np.zeros((size, 1))
         self.geometry    = copy.copy(self.activations.shape)
-        self._baselines   = np.zeros((size, 1))
-        self._mask        = np.ones((size, 1))
-        self._thresholds  = np.zeros((size, 1))
-        self._inputs      = np.zeros((size, 1))
+        self.baselines   = np.zeros((size, 1))
+        self.mask        = np.ones((size, 1))
+        self.thresholds  = np.zeros((size, 1))
+        self.inputs      = np.zeros((size, 1))
                 
         # --- Private fields ---------------------
         self.__history   = deque()
@@ -174,7 +172,6 @@ class Group(NeuralObject, ContextContainer):
         self.SetClamped(False)
         self.SetContext(context)
 
-
     def __repr__(self):
         """String representation of a group"""
         return "<%s, %s>" % (self.name, self.activations.size)
@@ -183,61 +180,10 @@ class Group(NeuralObject, ContextContainer):
         """String representations of a group"""
         return self.__repr__()
 
-    # New code prevents broadcasting errors in NumPy.
-    # Requires larger set of compatibility checks, but also
-    # makes the code much more tolerant of possible imperfections
-    # in assigning inputs, activations, masks, thresholds etc.
-
-    def ArrayCompatible(self, array):
-        """
-Checks whether a given array is compatible with the internal
-models.
-        """
-        if len(array.shape) == 1:
-            return self._activations.shape[0] == array.shape[0]
-        
-        # If the array is a matrix 
-        elif len(array.shape) == 2:
-            return  set(array.shape) == set(self.activations.shape)
-        
-        else:
-            return False
-
-    @property
-    def size(self):
-        """Read-only property size (the size of the group)"""
-        return self._size
-    
-    @property
-    def geometry(self):
-        return self._geometry
-    
-    @geometry.setter
-    def geometry(self, shape):
-        """Sets the geometry (IFF geometry is compatible with size)"""
-        if len(shape) <= 2 and \
-            reduce(operator.mul, shape) == self.size:
-            self._geometry = shape
-        else:
-            raise NeuralException(self, "Incompatible geometry")
-    
-
-    @property 
-    def activations(self):
-        """Returns the activations"""
-        return self._activations
-    
-    @activations.setter
-    def activations(self, activations):
-        """Sets the array of activations"""
-        self.SetActivations(activations, clamped=False)
-
     def SetActivations(self, activations, clamped=False):
         """Sets the activation values of the group's neurons"""
-        if self.ArrayCompatible(activations):
-            newvals = np.copy(activations)
-            newvals.shape = self.activations.shape  # Reformat activatipns
-            self._activations = newvals
+        if self.activations.shape == activations.shape:
+            self.activations=np.copy(activations)
             if clamped:
                 self.SetClamped(True)
         else:
@@ -247,60 +193,6 @@ models.
     def GetActivations(self):
         """Returns the activation values of the neurons"""
         return self.activations
-
-    @property
-    def inputs(self):
-        return self._inputs
-    
-    @inputs.setter
-    def inputs(self, inputs):
-        if self.ArrayCompatible(inputs):
-            newvals = np.copy(inputs)
-            newvals.shape = self.inputs.shape  # Reformat inputs
-            self._inputs = newvals
-        else:   
-            raise NeuralException(self, "Mismatching inputs")   
- 
-    @property
-    def mask(self):
-        return self._mask
-    
-    @mask.setter
-    def mask(self, mask):
-        if self.ArrayCompatible(mask):
-            newvals = np.copy(mask)
-            newvals.shape = self.mask.shape  # Reformat masks
-            self._mask = newvals
-        else:   
-            raise NeuralException(self, "Mismatching mask")   
- 
-
-    @property
-    def thresholds(self):
-        return self._thresholds
-    
-    @thresholds.setter
-    def thresholds(self, thresholds):
-        if self.ArrayCompatible(thresholds):
-            newvals = np.copy(thresholds)
-            newvals.shape = self.thresholds.shape  # Reformat thresholds
-            self._thresholds = newvals
-        else:   
-            raise NeuralException(self, "Mismatching thresholds")   
- 
-    @property
-    def baselines(self):
-        return self._baselines
-    
-    @inputs.setter
-    def baselines(self, baselines):
-        if self.ArrayCompatible(baselines):
-            newvals = np.copy(baselines)
-            newvals.shape = self.baselines.shape  # Reformat activatipns
-            self._baselines = newvals
-        else:   
-            raise NeuralException(self, "Mismatching baselines")   
- 
 
     def SetUpdateFunction(self, func):
         """Sets the update function"""
@@ -471,7 +363,6 @@ class Projection(NeuralObject, ContextContainer):
 Updates the activation values of the destination group after propagating
 the activation of the source group through the weight matri
         """
-        print self
         w   = self.weights * self.mask
         res = np.dot(w, self.groupFrom.activations)
         self.groupTo.inputs += res

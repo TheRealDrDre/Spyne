@@ -45,9 +45,9 @@ def chl_synchronous(c, inputs, targets, rate=0.2):
 
 def chl_asynchronous(c, inputs, targets, rate=0.2):
     """Asynchronous Contrastive Hebbian Learning"""
-    projections = c.GetProjections(exclusive=True)
-    c_inputs = c.GetInput()
-    c_outputs = c.GetOutput()
+    projections=c.GetProjections(exclusive=True)
+    c_inputs=c.GetInput()
+    c_outputs=c.GetOutput()
     
     for i in range(len(inputs)):
         c_inputs[i].activations=inputs[i]
@@ -56,19 +56,17 @@ def chl_asynchronous(c, inputs, targets, rate=0.2):
         c_outputs[i].SetClamped(True)
 
     c.Update(verbose=False)
-    
     for p in projections:
         delta = p.groupTo.activations*p.groupFrom.activations.T
-        p.weights += delta
+        p.weights+=delta
 
     for i in range(len(targets)):
         c_outputs[i].SetClamped(False)
 
     c.Update(verbose=False)
-    
     for p in projections:
         delta = p.groupTo.activations*p.groupFrom.activations.T
-        p.weights -= delta
+        p.weights-=delta
     
 
 def chl(c, inputs, targets,
