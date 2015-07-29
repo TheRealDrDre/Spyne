@@ -44,7 +44,7 @@ def chl_synchronous(c, inputs, targets, rate=0.2):
         # I think this was a mistake
         #delta = antihebb[p.groupTo] * hebb[p.groupFrom].T - hebb[p.groupTo] * hebb[p.groupFrom].T
         delta = antihebb[p.groupTo] * antihebb[p.groupFrom].T - hebb[p.groupTo] * hebb[p.groupFrom].T
-        p.weights += delta
+        p.weights += (rate * delta)
 
 
 def chl_asynchronous(c, inputs, targets, rate=0.2):
@@ -62,8 +62,8 @@ def chl_asynchronous(c, inputs, targets, rate=0.2):
     c.Update(verbose=False)
     
     for p in projections:
-        delta = p.groupTo.activations*p.groupFrom.activations.T
-        p.weights += delta
+        delta = p.groupTo.activations * p.groupFrom.activations.T
+        p.weights += (rate * delta)
 
     for i in range(len(targets)):
         c_outputs[i].SetClamped(False)
@@ -71,8 +71,8 @@ def chl_asynchronous(c, inputs, targets, rate=0.2):
     c.Update(verbose=False)
     
     for p in projections:
-        delta = p.groupTo.activations*p.groupFrom.activations.T
-        p.weights -= delta
+        delta = p.groupTo.activations * p.groupFrom.activations.T
+        p.weights -= (rate * delta)
     
 
 def chl(c, inputs, targets,
@@ -96,13 +96,13 @@ def chl(c, inputs, targets,
     return i
 
 
-def chla(c, inputs, targets,
+def chl_batch(c, input_set, target_set,
          rate=0.2, error=10e-4, max_epochs=10e4,
          func=chl_synchronous, verbose=False):
-    """Performs contrastive Hebbian learning of a specified pattern"""
+    """Performs contrastive Hebbian learning of a set of patterns"""
     e = []
     i = 0
-    for ins, tgts in zip(inputs, targets):
+    for ins, tgts in zip(input_set, target_set):
         c.SetInputActivations(ins, clamped=True)
         c.Update(verbose=False)
         A = [x.activations for x in c.GetOutput()]
@@ -112,7 +112,7 @@ def chla(c, inputs, targets,
     while (max(e) > error and i < max_epochs):
         i += 1
         e  = []
-        pattern_set = copy.copy(zip(inputs, targets))
+        pattern_set = copy.copy(zip(input_set, target_set))
         random.shuffle(pattern_set)
         for ins, tgts in pattern_set:
             func(c, ins, tgts, rate)
@@ -120,7 +120,7 @@ def chla(c, inputs, targets,
             A = [x.activations for x in c.GetOutput()]
             #e.append(sum(map(Error, A, tgts)))
             # Redo all the tests insetad!
-            e.append(test(c, inputs, targets, error))
+        e.append(test(c, input_set, target_set, error))
         if verbose:
             print "[%d] %s" % (i, max(e))
     return i
@@ -145,6 +145,12 @@ def test(c, input_set, target_set, error=10e-4, verbose=False):
     results = np.array(e) < error
     return max(e)
         
+
+def test_unique(input_set):
+    """Tests whether the inputs set is unique or overlapping"""
+    ins = [`np.concatenate(tuple(x))` for x in input_set]
+    res = np.array([ins.count(x) for x in ins]) == 1
+    return res.all()
 
 
 ## ---------------------------------------------------------------- ##
